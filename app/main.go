@@ -7,6 +7,5 @@ import (
 
 func main() {
 	fmt.Println("Hello there")
-	test := RSSReader.RSSItem{}
-	test.Parse(nil)
+	RSSReader.Parse(nil)
 }
