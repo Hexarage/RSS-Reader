@@ -11,25 +11,21 @@ import (
 )
 
 type RSSItem struct {
-	Title       string
-	Source      string
-	SourceURL   string
-	Link        string
-	PublishDate time.Time
-	Description string
+	Title       string `xml:"title,omitempty"`
+	Source      string `xml:"source,omitempty"`
+	SourceURL   string `xml:"sourceurl,omitempty"` // haven't encountered this particular tag, TODO: See what it may be referring to
+	Link        string `xml:"link"`
+	PublishDate string `xml:"pubDate"` // running into some weird parsing error for Time.time, so keeping it as string for now
+	Description string `xml:"description"`
+}
+type channel struct {
+	Title string    `xml:"title,omitempty"`
+	Image string    `xml:"image,omitempty"`
+	Items []RSSItem `xml:"item"`
 }
 
-type RSSFeed struct { // figure out how to unmarshal into this?
-	Channel struct {
-		Title       string `xml:"title"`
-		Source      string `xml:"source"`
-		SourceURL   string `xml:""`
-		Link        string
-		PublishDate time.Time `xml:"pubDate"`
-		Item        struct {
-			Description string `xml:"description"`
-		} `xml:"item"`
-	} `xml:"channel"`
+type rSSFeed struct { // figure out how to unmarshal into this?
+	Channel channel `xml:"channel"`
 } // using https://en.wikipedia.org/wiki/RSS#Example as a template of sorts
 
 func checkF(e error) {
@@ -39,9 +35,8 @@ func checkF(e error) {
 }
 
 // add a context so I can cancel mid way?
-func parseRSSLink(link *url.URL, ch chan<- RSSItem, wg *sync.WaitGroup) {
+func parseRSSLink(link *url.URL, ch chan<- []RSSItem, wg *sync.WaitGroup) {
 	defer wg.Done()
-	var item RSSItem
 
 	// TODO: Fetch the data from the link
 	httpClient := http.Client{
@@ -55,23 +50,29 @@ func parseRSSLink(link *url.URL, ch chan<- RSSItem, wg *sync.WaitGroup) {
 
 	data, err := io.ReadAll(response.Body)
 	checkF(err)
-	log.Printf("Successfully read the data from the link %v\n %v", link, string(data))
+	//log.Printf("Successfully read the data from the link %v\n %v", link, string(data))
 	// TODO: do some parsing and stuff
 
-	var feed RSSFeed
-
-	err = xml.Unmarshal(data, &feed) // RSS is just an xml feed
-	checkF(err)
-	//log.Println(RSSFeed.Channel.Title)
-	parseFeed(data)
-
+	items := parseFeed(data)
+	if items != nil {
+		ch <- items
+	}
 	// pass the parsed item to the channel if valid, otherwise just be done with this go routine
-	ch <- item
 
 }
-func parseFeed(data []byte) RSSFeed {
+func parseFeed(data []byte) []RSSItem {
 
-	return RSSFeed{}
+	/*
+		need to traverse the feed until I get to items
+		after which parse each item and pass them on
+	*/
+
+	var f rSSFeed
+	//var test map[string]interface{}
+	err := xml.Unmarshal(data, &f) // RSS is just an xml feed
+	checkF(err)
+
+	return f.Channel.Items
 }
 
 func Parse(links []string) []RSSItem {
@@ -80,7 +81,7 @@ func Parse(links []string) []RSSItem {
 	}
 
 	waitGroup := sync.WaitGroup{}
-	rssChannel := make(chan RSSItem)
+	rssChannel := make(chan []RSSItem)
 
 	for _, link := range links {
 		// check if link is a valid link
@@ -101,7 +102,7 @@ func Parse(links []string) []RSSItem {
 	var parsedRSSItems []RSSItem
 
 	for item := range rssChannel {
-		parsedRSSItems = append(parsedRSSItems, item)
+		parsedRSSItems = append(parsedRSSItems, item...)
 	}
 
 	return parsedRSSItems

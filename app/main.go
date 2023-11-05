@@ -15,4 +15,6 @@ func main() {
 	if result == nil {
 		log.Fatal("RSS Parser returned empty slice of RSSItems")
 	}
+
+	log.Println("Parsed ", len(result), " items")
 }
