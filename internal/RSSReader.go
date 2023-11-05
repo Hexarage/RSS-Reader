@@ -14,9 +14,9 @@ type RSSItem struct {
 	Title       string `xml:"title,omitempty"`
 	Source      string `xml:"source,omitempty"`
 	SourceURL   string `xml:"sourceurl,omitempty"` // haven't encountered this particular tag, TODO: See what it may be referring to
-	Link        string `xml:"link"`
-	PublishDate string `xml:"pubDate"` // running into some weird parsing error for Time.time, so keeping it as string for now
-	Description string `xml:"description"`
+	Link        string `xml:"link,omitempty"`
+	PublishDate string `xml:"pubDate,omitempty"` // running into some weird parsing error for Time.time, so keeping it as string for now
+	Description string `xml:"description,omitempty"`
 }
 type channel struct {
 	Title string    `xml:"title,omitempty"`

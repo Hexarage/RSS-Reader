@@ -13,21 +13,27 @@ type APIServer struct {
 	storage    Storage
 }
 
+type AddLinkRequest struct {
+	Link string `json:"link"`
+}
+
 func NewAPIServer(listenAddress string, strg Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddress,
 		storage:    strg,
 	}
 }
+
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/RSSAggregator", makeHTTPHandlerFunc(s.handleRequest)) // figure out the json stuff
-	router.HandleFunc("/RSSAggregator/{id}", makeHTTPHandlerFunc(s.handleGetRequest))
+	router.HandleFunc("/RSSAggregator/{id}", makeHTTPHandlerFunc(s.handleGetRequestById))
 
 	log.Println("JSON API Server running on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
 }
+
 func (s *APIServer) handleRequest(w http.ResponseWriter, rq *http.Request) error {
 
 	switch rq.Method {
@@ -44,8 +50,23 @@ func (s *APIServer) handleRequest(w http.ResponseWriter, rq *http.Request) error
 	return nil
 }
 
+func (s *APIServer) handleGetRequestById(w http.ResponseWriter, rq *http.Request) error {
+	id := mux.Vars(rq)["id"]
+	links, err := s.storage.GetFeedById(id)
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, links)
+}
+
 func (s *APIServer) handleGetRequest(w http.ResponseWriter, rq *http.Request) error {
-	return nil
+	links, err := s.storage.GetAllFeeds()
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, links)
 }
 
 func (s *APIServer) handleDeleteRequest(w http.ResponseWriter, rq *http.Request) error {
@@ -53,7 +74,16 @@ func (s *APIServer) handleDeleteRequest(w http.ResponseWriter, rq *http.Request)
 }
 
 func (s *APIServer) handleAddRequest(w http.ResponseWriter, rq *http.Request) error {
-	return nil
+	linkCreateRequest := new(AddLinkRequest)
+	if err := json.NewDecoder(rq.Body).Decode(&linkCreateRequest); err != nil {
+		return err
+	}
+
+	if err := s.storage.AddFeed(linkCreateRequest.Link); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, linkCreateRequest) // TODO: Change storage API so that we get the ID of the link at least
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
