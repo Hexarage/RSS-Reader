@@ -20,15 +20,17 @@ type RSSItem struct {
 }
 
 type RSSFeed struct { // figure out how to unmarshal into this?
-	Title       string `xml:"title"`
-	Source      string `xml:"source"`
-	SourceURL   string `xml:""`
-	Link        string
-	PublishDate time.Time `xml:"pubDate"`
-	Item        struct {
-		Description string `xml:"description"`
-	} `xml:"item"`
-}
+	Channel struct {
+		Title       string `xml:"title"`
+		Source      string `xml:"source"`
+		SourceURL   string `xml:""`
+		Link        string
+		PublishDate time.Time `xml:"pubDate"`
+		Item        struct {
+			Description string `xml:"description"`
+		} `xml:"item"`
+	} `xml:"channel"`
+} // using https://en.wikipedia.org/wiki/RSS#Example as a template of sorts
 
 func checkF(e error) {
 	if e != nil {
@@ -53,17 +55,23 @@ func parseRSSLink(link *url.URL, ch chan<- RSSItem, wg *sync.WaitGroup) {
 
 	data, err := io.ReadAll(response.Body)
 	checkF(err)
+	log.Printf("Successfully read the data from the link %v\n %v", link, string(data))
+	// TODO: do some parsing and stuff
 
 	var feed RSSFeed
 
 	err = xml.Unmarshal(data, &feed) // RSS is just an xml feed
 	checkF(err)
-
-	// TODO: do some parsing and stuff
+	//log.Println(RSSFeed.Channel.Title)
+	parseFeed(data)
 
 	// pass the parsed item to the channel if valid, otherwise just be done with this go routine
 	ch <- item
 
+}
+func parseFeed(data []byte) RSSFeed {
+
+	return RSSFeed{}
 }
 
 func Parse(links []string) []RSSItem {
@@ -85,7 +93,7 @@ func Parse(links []string) []RSSItem {
 		go parseRSSLink(currentLink, rssChannel, &waitGroup)
 	}
 
-	go func() { // TODO:  really hacky, get rid of this later
+	go func() { // TODO:  really hacky, get rid of this later, maybe just make a channel that is as big as the ammount of links passed?
 		waitGroup.Wait()
 		close(rssChannel)
 	}()
