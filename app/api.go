@@ -1,6 +1,7 @@
 package main
 
 import (
+	RSSReader "RSS-Reader/internal"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -29,6 +30,7 @@ func (s *APIServer) Run() {
 
 	router.HandleFunc("/RSSAggregator", makeHTTPHandlerFunc(s.handleRequest)) // figure out the json stuff
 	router.HandleFunc("/RSSAggregator/{id}", makeHTTPHandlerFunc(s.handleGetRequestById))
+	router.HandleFunc("/RSSAggregator/Feeds", makeHTTPHandlerFunc(s.handleGetParsedRequest))
 
 	log.Println("JSON API Server running on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
@@ -58,6 +60,17 @@ func (s *APIServer) handleGetRequestById(w http.ResponseWriter, rq *http.Request
 	}
 
 	return WriteJSON(w, http.StatusOK, links)
+}
+
+func (s *APIServer) handleGetParsedRequest(w http.ResponseWriter, rq *http.Request) error {
+	links, err := s.storage.GetAllFeeds()
+	if err != nil {
+		return err
+	}
+
+	results := RSSReader.Parse(links)
+
+	return WriteJSON(w, http.StatusOK, results)
 }
 
 func (s *APIServer) handleGetRequest(w http.ResponseWriter, rq *http.Request) error {
