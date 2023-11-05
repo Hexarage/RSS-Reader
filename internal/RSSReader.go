@@ -88,13 +88,11 @@ func Parse(links []string) []RSSItem {
 		currentLink, err := url.ParseRequestURI(link)
 		checkF(err)
 
-		// link is valid, add to a list of actual links?
-		// go parseRSSLink(currentLink) + some sort of channel?
 		waitGroup.Add(1)
 		go parseRSSLink(currentLink, rssChannel, &waitGroup)
 	}
 
-	go func() { // TODO:  really hacky, get rid of this later, maybe just make a channel that is as big as the ammount of links passed?
+	go func() { // TODO:  really hacky, get rid of this later
 		waitGroup.Wait()
 		close(rssChannel)
 	}()

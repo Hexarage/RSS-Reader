@@ -10,6 +10,16 @@ func main() {
 	log.Printf("Starting the main function.\n")
 	var links []string
 	links = append(links, "https://rss.com/blog/category/press-releases/feed/")
+	links = append(links, "https://blog.jetbrains.com/go/feed")
+
+	store, err := NewPostgresStore()
+	if err != nil {
+		log.Fatal("Could not initialize the database", err.Error())
+	}
+
+	server := NewAPIServer(":3000", store)
+	server.Run()
+
 	result := RSSReader.Parse(links)
 
 	if result == nil {
