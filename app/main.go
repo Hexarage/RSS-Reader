@@ -12,16 +12,7 @@ func main() {
 	links = append(links, "https://rss.com/blog/category/press-releases/feed/")
 	links = append(links, "https://blog.jetbrains.com/go/feed")
 
-	store, err := NewPostgresStore()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := store.Init(); err != nil {
-		log.Fatal(err)
-	}
-
-	server := NewAPIServer(":3000", store)
+	server := NewAPIServer(":3000")
 	server.Run()
 
 	result := RSSReader.Parse(links)

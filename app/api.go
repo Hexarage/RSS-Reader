@@ -11,17 +11,15 @@ import (
 
 type APIServer struct {
 	listenAddr string
-	storage    Storage
 }
 
 type AddLinkRequest struct {
 	Link string `json:"link"`
 }
 
-func NewAPIServer(listenAddress string, strg Storage) *APIServer {
+func NewAPIServer(listenAddress string) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddress,
-		storage:    strg,
 	}
 }
 
@@ -29,7 +27,6 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/RSSAggregator", makeHTTPHandlerFunc(s.handleRequest)) // figure out the json stuff
-	router.HandleFunc("/RSSAggregator/{id}", makeHTTPHandlerFunc(s.handleGetRequestById))
 	router.HandleFunc("/RSSAggregator/Feeds", makeHTTPHandlerFunc(s.handleGetParsedRequest))
 
 	log.Println("JSON API Server running on port: ", s.listenAddr)
@@ -40,7 +37,7 @@ func (s *APIServer) handleRequest(w http.ResponseWriter, rq *http.Request) error
 
 	switch rq.Method {
 	case "GET":
-		return s.handleGetRequest(w, rq)
+		return nil
 	case "POST":
 		return s.handleAddRequest(w, rq)
 	case "PATCH":
@@ -52,34 +49,14 @@ func (s *APIServer) handleRequest(w http.ResponseWriter, rq *http.Request) error
 	return nil
 }
 
-func (s *APIServer) handleGetRequestById(w http.ResponseWriter, rq *http.Request) error {
-	id := mux.Vars(rq)["id"]
-	links, err := s.storage.GetFeedById(id)
-	if err != nil {
-		return err
-	}
-
-	return WriteJSON(w, http.StatusOK, links)
-}
-
 func (s *APIServer) handleGetParsedRequest(w http.ResponseWriter, rq *http.Request) error {
-	links, err := s.storage.GetAllFeeds()
-	if err != nil {
-		return err
-	}
+	var links []string
+
+	// get all of the links from the request
 
 	results := RSSReader.Parse(links)
 
 	return WriteJSON(w, http.StatusOK, results)
-}
-
-func (s *APIServer) handleGetRequest(w http.ResponseWriter, rq *http.Request) error {
-	links, err := s.storage.GetAllFeeds()
-	if err != nil {
-		return err
-	}
-
-	return WriteJSON(w, http.StatusOK, links)
 }
 
 func (s *APIServer) handleDeleteRequest(w http.ResponseWriter, rq *http.Request) error {
@@ -92,11 +69,7 @@ func (s *APIServer) handleAddRequest(w http.ResponseWriter, rq *http.Request) er
 		return err
 	}
 
-	if err := s.storage.AddFeed(linkCreateRequest.Link); err != nil {
-		return err
-	}
-
-	return WriteJSON(w, http.StatusOK, linkCreateRequest) // TODO: Change storage API so that we get the ID of the link at least
+	return WriteJSON(w, http.StatusOK, linkCreateRequest) // TODO: Change it so that it doesn't use storage at all
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
