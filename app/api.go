@@ -3,6 +3,7 @@ package main
 import (
 	RSSReader "RSS-Reader/internal"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -26,50 +27,33 @@ func NewAPIServer(listenAddress string) *APIServer {
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/RSSAggregator", makeHTTPHandlerFunc(s.handleRequest)) // figure out the json stuff
-	router.HandleFunc("/RSSAggregator/Feeds", makeHTTPHandlerFunc(s.handleGetParsedRequest))
+	router.HandleFunc("/RSSAggregator", makeHTTPHandlerFunc(s.handleRequest))
 
 	log.Println("JSON API Server running on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
 }
 
 func (s *APIServer) handleRequest(w http.ResponseWriter, rq *http.Request) error {
-
-	switch rq.Method {
-	case "GET":
-		return nil
-	case "POST":
-		return s.handleAddRequest(w, rq)
-	case "PATCH":
-
-	case "DELETE":
-		return s.handleDeleteRequest(w, rq)
+	if rq.Method != "GET" {
+		return fmt.Errorf("unsupported method")
 	}
 
-	return nil
-}
-
-func (s *APIServer) handleGetParsedRequest(w http.ResponseWriter, rq *http.Request) error {
-	var links []string
-
-	// get all of the links from the request
-
-	results := RSSReader.Parse(links)
-
-	return WriteJSON(w, http.StatusOK, results)
-}
-
-func (s *APIServer) handleDeleteRequest(w http.ResponseWriter, rq *http.Request) error {
-	return nil
-}
-
-func (s *APIServer) handleAddRequest(w http.ResponseWriter, rq *http.Request) error {
-	linkCreateRequest := new(AddLinkRequest)
-	if err := json.NewDecoder(rq.Body).Decode(&linkCreateRequest); err != nil {
+	var req inputJSON
+	if err := json.NewDecoder(rq.Body).Decode(&req); err != nil {
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, linkCreateRequest) // TODO: Change it so that it doesn't use storage at all
+	if len(req.Links) == 0 {
+		return fmt.Errorf("too few elements")
+	}
+	var result returnJSON
+	result.Items = RSSReader.Parse(req.Links)
+
+	if result.Items == nil {
+		return WriteJSON(w, http.StatusInternalServerError, nil) // TODO: there's probably more adequate response, change it to that
+	}
+
+	return WriteJSON(w, http.StatusOK, result)
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
@@ -84,10 +68,18 @@ type ApiError struct {
 	Error string
 }
 
-func makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc {
+func makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc { // This is in case we want to add further functionality
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}
+}
+
+type inputJSON struct {
+	Links []string `json:"links"`
+}
+
+type returnJSON struct {
+	Items []RSSReader.RSSItem `json:"items"`
 }

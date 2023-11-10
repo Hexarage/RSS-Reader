@@ -11,13 +11,14 @@ import (
 )
 
 type RSSItem struct {
-	Title       string `xml:"title,omitempty"`
-	Source      string `xml:"source,omitempty"`
-	SourceURL   string `xml:"sourceurl,omitempty"` // haven't encountered this particular tag, TODO: See what it may be referring to
-	Link        string `xml:"link,omitempty"`
-	PublishDate string `xml:"pubDate,omitempty"` // running into some weird parsing error for Time.time, so keeping it as string for now
-	Description string `xml:"description,omitempty"`
+	Title       string `xml:"title,omitempty" json:"title"`
+	Source      string `xml:"source,omitempty" json:"source"`
+	SourceURL   string `xml:"sourceurl,omitempty" json:"source_url"` // haven't encountered this particular tag, TODO: See what it may be referring to
+	Link        string `xml:"link,omitempty" json:"link"`
+	PublishDate string `xml:"pubDate,omitempty" json:"publish_date"` // running into some weird parsing error for Time.time, so keeping it as string for now
+	Description string `xml:"description,omitempty" json:"description"`
 }
+
 type channel struct {
 	Title string    `xml:"title,omitempty"`
 	Image string    `xml:"image,omitempty"`
