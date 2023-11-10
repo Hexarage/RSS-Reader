@@ -52,6 +52,9 @@ func parseRSSLink(link *url.URL, ch chan<- []RSSItem, wg *sync.WaitGroup) {
 
 	items := parseFeed(data)
 	if items != nil {
+		for _, i := range items {
+			i.SourceURL = link.String()
+		}
 		ch <- items
 	}
 }
