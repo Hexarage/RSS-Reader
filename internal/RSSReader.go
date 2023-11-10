@@ -35,11 +35,9 @@ func checkF(e error) {
 	}
 }
 
-// add a context so I can cancel mid way?
 func parseRSSLink(link *url.URL, ch chan<- []RSSItem, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	// TODO: Fetch the data from the link
 	httpClient := http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -51,26 +49,17 @@ func parseRSSLink(link *url.URL, ch chan<- []RSSItem, wg *sync.WaitGroup) {
 
 	data, err := io.ReadAll(response.Body)
 	checkF(err)
-	//log.Printf("Successfully read the data from the link %v\n %v", link, string(data))
-	// TODO: do some parsing and stuff
 
 	items := parseFeed(data)
 	if items != nil {
 		ch <- items
 	}
-	// pass the parsed item to the channel if valid, otherwise just be done with this go routine
-
 }
+
 func parseFeed(data []byte) []RSSItem {
-
-	/*
-		need to traverse the feed until I get to items
-		after which parse each item and pass them on
-	*/
-
 	var f rSSFeed
-	//var test map[string]interface{}
-	err := xml.Unmarshal(data, &f) // RSS is just an xml feed
+
+	err := xml.Unmarshal(data, &f)
 	checkF(err)
 
 	return f.Channel.Items
