@@ -27,12 +27,6 @@ type channel struct {
 
 type rSSFeed struct { // figure out how to unmarshal into this?
 	Channel channel `xml:"channel"`
-} // using https://en.wikipedia.org/wiki/RSS#Example as a template of sorts
-
-func checkF(e error) {
-	if e != nil {
-		log.Fatal(e)
-	}
 }
 
 func parseRSSLink(link *url.URL, ch chan<- []RSSItem, wg *sync.WaitGroup) {
@@ -43,12 +37,18 @@ func parseRSSLink(link *url.URL, ch chan<- []RSSItem, wg *sync.WaitGroup) {
 	}
 
 	response, err := httpClient.Get(link.String())
-	checkF(err)
+	if err != nil {
+		log.Printf("Encountered an error: \"%v\" while getting data from link: %v", err, link.String())
+		return
+	}
 
 	defer response.Body.Close()
 
 	data, err := io.ReadAll(response.Body)
-	checkF(err)
+	if err != nil {
+		log.Printf("Encountered an error: \"%v\" while reading data from link: %v", err, link.String())
+		return
+	}
 
 	items := parseFeed(data)
 	if items != nil {
@@ -63,13 +63,17 @@ func parseFeed(data []byte) []RSSItem {
 	var f rSSFeed
 
 	err := xml.Unmarshal(data, &f)
-	checkF(err)
+	if err != nil {
+		log.Printf("Encountered an error: \"%v\" while unmarshaling xml data.", err)
+		return nil
+	}
 
 	return f.Channel.Items
 }
 
 func Parse(links []string) []RSSItem {
 	if links == nil {
+		log.Printf("Parser was passed an empty slice of links")
 		return nil
 	}
 
@@ -79,7 +83,10 @@ func Parse(links []string) []RSSItem {
 	for _, link := range links {
 		// check if link is a valid link
 		currentLink, err := url.ParseRequestURI(link)
-		checkF(err)
+		if err != nil {
+			log.Printf("Encountered an error: \"%v\" while verifying link validity for link:\"%v\"", err, link)
+			return nil
+		}
 
 		waitGroup.Add(1)
 		go parseRSSLink(currentLink, rssChannel, &waitGroup)
