@@ -43,3 +43,10 @@ If there is at least one valid link to a feed, the server will parse it and retu
 }
 ```
 
+## Running tests
+
+To check whether the parser works as intended, run the following command in the root directory of the project:
+
+```bash
+go test ./...
+```
