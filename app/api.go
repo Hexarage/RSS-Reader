@@ -19,6 +19,7 @@ type AddLinkRequest struct {
 }
 
 func NewAPIServer(listenAddress string) *APIServer {
+	log.Printf("Starting server on address: %v\n", listenAddress)
 	return &APIServer{
 		listenAddr: listenAddress,
 	}
@@ -74,6 +75,20 @@ func makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc { // This is in case we wan
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}
+}
+
+func slicesAreSame(first []RSSReader.RSSItem, second []RSSReader.RSSItem) bool { // TODO: Make it not care if elements are not in same order
+	if len(first) != len(second) {
+		return false
+	}
+
+	for i, e := range first {
+		if e != second[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 type inputJSON struct {
