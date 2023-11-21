@@ -91,6 +91,13 @@ func slicesAreSame(first []RSSReader.RSSItem, second []RSSReader.RSSItem) bool {
 	return true
 }
 
+type daemonConfig struct {
+}
+
+func parseArgs(args []string) daemonConfig {
+	return daemonConfig{}
+}
+
 type inputJSON struct {
 	Links []string `json:"links"`
 }

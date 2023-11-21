@@ -3,6 +3,7 @@ package main
 import (
 	RSSReader "RSS-Reader/internal"
 	"log"
+	"os"
 	"time"
 )
 
@@ -10,8 +11,14 @@ func main() {
 	// some rudimentary logging
 	log.Printf("Starting the main function.\n")
 
-	server := NewAPIServer(":3000")
-	server.Run()
+	args := os.Args[1:]
+
+	if len(args) == 0 {
+		server := NewAPIServer(":3000")
+		server.Run()
+	}
+
+	config := parseArgs(args)
 
 	/*
 		alternatively I can just start a background service which reads a list of rss links and posts a toast to notify when there is a new item
@@ -23,6 +30,8 @@ func main() {
 	var result []RSSReader.RSSItem
 
 	for {
+		//TODO: Use the config in order to decide how exactly this runs, something like config.Run() or runDaemon(config)
+
 		newResult := RSSReader.Parse(dummy)
 
 		if slicesAreSame(result, newResult) {
